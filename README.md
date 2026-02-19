@@ -31,7 +31,73 @@ Organize a saída e visualização das informações extraídas.
 
 # Documentação do Teste 1
 
-Escreva aqui a documentação do desenvolvimento do teste 1.
+Eu fiz uma abordagem mista **OCR + Regex**, utilizando as bibliotecas pdf2image para conversão, pytesseract para reconhecimento de texto e opencv para pré-processamento de imagem.
+
+O código funciona através de um sistema de prioridades: primeiro, ele tenta localizar os dados via Regex no texto bruto (o que garante resiliência contra erros de acentuação e variações de layout); caso não encontre, ele utiliza o OCR por coordenadas (regiões) como backup. Essa lógica híbrida permite extrair campos complexos, como o somatório de energias compensadas e a linha digitável do PIX, com alta precisão, mesmo quando o documento apresenta ruídos ou caracteres distorcidos.
+O texto bruto era difícil de processar pois às vezes vinha uma "tabela" com difícil demarcação entre os headers como:
+
+```bash
+Lote Roteiro de leitura N°. Medidor PN Reservado ao Fisco
+18 RO90-00000000 22115555001 986654521
+
+```
+E eu demarquei as regiões em que os campos aparecem. Idealmente, eu poderia até comparar os dois se geraram o mesmo resultado, e escolhi o Regex como prioridade acima do OCR (isso foi arbitrário, o Regex pode dar errado e o OCR dar certo). O OCR também falha às vezes, lendo um "G" no lugar de "Ç".
+
+Estou usando WSL. Eu também usei um ambiente virtual para facilitar instalar as libs, mas ele está no gitignore.
+
+Como Executar o Projeto:
+
+1. **Pré-requisitos**: Certifique-se de ter o Python 3.x instalado e as dependências do sistema (Tesseract OCR e Poppler para o pdf2image).
+   - No Ubuntu/WSL: `sudo apt install tesseract-ocr poppler-utils`
+2. **Instalação**: Instale as bibliotecas Python necessárias:
+
+```bash
+pip install -r requirements.txt
+```
+Para rodar o script, basta chamar `python read.py TIPO`, TIPO pode ser `cemig` ou `cpfl` Os outputs foram:
+
+``` bash
+gio@DESKTOP-C5DAE4V:~/teste-processamento-inteligente-de-documentos-19022026$ python read.py cemig
+--- DADOS EXTRAÍDOS (CEMIG) ---
+Titular Nome             : J OAO NEVES
+Titular Documento        : 715.665.976-13
+Titular Endereco Rua     : PCA DOUTOR GONCALVES 379 CS 802
+Titular Endereco Bairro  : CENTRO
+Titular Endereco Cep     : 35570-000 VICOSA, MG
+Classificacao Instalacao : Residencial
+Numero Instalacao        : 4547896527
+Valor A Pagar            : R$76,66
+Data Vencimento          : 06/08/2023
+Mes Referencia           : | UL/2023
+Tarifa Total Com Tributos: 0,95954601
+Consumo Kwh              : 199 kWh
+Linha Digitavel          : 1221111178789
+Soma Energias Comp. R$   : -72.48
+gio@DESKTOP-C5DAE4V:~/teste-processamento-inteligente-de-documentos-19022026$ python read.py cpfl
+--- DADOS EXTRAÍDOS (CPFL) ---
+Titular Nome             : JOAO NEVES
+Titular Documento        : 715.665.976-13
+Titular Endereco Rua     : PCA DOUTOR GONCALVES 379 CS 802
+Titular Endereco Bairro  : CENTRO
+Titular Endereco Cep     : 35570-000 VICOSA MG
+Classificacao Instalacao : Convencional B1 Residencial - Bifasico 220 /127 V
+Numero Instalacao        : 12385675
+Valor A Pagar            : 219,14
+Data Vencimento          : 28/11/2023
+Mes Referencia           : OUT/2023
+Tarifa Total Com Tributos: 0,47425000
+Tarifa Aneel Te          : 0,31884000
+Tarifa Aneel Tusd        : 0,37162000
+Consumo Kwh              : 2000 kWh
+Saldo Geracao Acumulado  : 0.0000000000 kWh kWh
+Linha Digitavel          : 000700000026 122201111122 1234285129034 100735547711
+gio@DESKTOP-C5DAE4V:~/teste-processamento-inteligente-de-documentos-19022026$ 
+
+```
+Mes Referencia           : | UL/2023
+Aqui houve um erro do OCR, uma '|' ao invés de 'J', formando a palavra JUL. Também é importante entender que a data pode estar em vários formatos: Jul, Julho, 7, etc, e isso teria que ser padronizado.
+
+Devido ao tempo de desenvolvimento, priorizei os campos de identificação, valores financeiros e consumo. Campos de tributação detalhada (Alíquotas ICMS/PIS/COFINS) e somatórios de operações específicas estão mapeados na estrutura do código, mas requerem ajustes de Regex adicionais para plena captura nos diferentes layouts.
 
 # Teste 2
 
@@ -45,7 +111,15 @@ Atividade: Analise a fatura e redija um documento respondendo os pontos abaixo. 
  - Identifique o consumo da instalação referente ao mês de julho de 2023.
 
 # Resposta para o Teste 2
-Escreva aqui suas respostas para o teste 2.
+    
+    Resposta1: a fatura convencional tem alguns dados a mais como a chave de acesso e o link. Além disso os dados dentro das "caixas" mudam entre uma fatura e outra, o que dificulta a demarcação de regiões para o OCR, como por exemplo, na caixa "informações gerais".
+
+    Resposta2: Esse bloco é crucial, pois detalha quanto foi injetado, quanto foi usado, tarifas, TE e TUSD, etc.
+
+    Resposta3: SALDO ATUAL DE GERAÇÃO: 234,63 kWh., pois diz respeito a quanta energia você produziu e enviou para a distribuidora, e ela fará os descontos e cálculos de saldo, etc. 
+
+    Resposta4: O consumo faturado na instalação em julho de 2023 foi de 199 kWh. A diferença em relação à fatura convencional (253 kWh) eu supónho que deve-se ao abatimento da energia injetada pelo sistema de microgeração, restando apenas o consumo líquido a ser pago à distribuidora
+
 
 # Requisitos dos Desafios:
 
